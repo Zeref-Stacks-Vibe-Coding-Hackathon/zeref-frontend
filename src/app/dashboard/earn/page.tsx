@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, AlertCircle, CheckCircle } from "lucide-react";
+import { Star, AlertCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 import Image from "next/image";
 import { useWallet } from "@/components/wallet/wallet-context";
 import { 
@@ -20,6 +21,8 @@ import {
   handleContractError,
   VaultBalance
 } from "@/lib/vault-service";
+import { testSTXTransfer } from "@/lib/test-transaction";
+import { testSimpleContract, testVaultRead, testMinimalDeposit } from "@/lib/simple-test";
 import { MICROSTX_IN_STX } from "@/lib/stacks-config";
 
 const availableVaults = [
@@ -75,10 +78,6 @@ export default function EarnPage() {
   const [amount, setAmount] = useState("");
   const [selectedVault, setSelectedVault] = useState(availableVaults[0]);
   const [isLoading, setIsLoading] = useState(false);
-  const [txStatus, setTxStatus] = useState<{
-    type: 'success' | 'error' | null;
-    message: string;
-  }>({ type: null, message: '' });
   const [userBalance, setUserBalance] = useState<VaultBalance | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number>(1);
   const [previewAmount, setPreviewAmount] = useState<number>(0);
@@ -144,37 +143,141 @@ export default function EarnPage() {
     }
   };
 
+  const handleTestTransfer = async () => {
+    setIsLoading(true);
+    
+    try {
+      const txId = await testSTXTransfer(1000000); // 1 STX
+      toast.success(
+        <div className="flex flex-col space-y-2">
+          <div className="font-medium">Test Transfer Successful!</div>
+          <a 
+            href={`https://explorer.hiro.so/txid/${txId}?chain=testnet`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
+          >
+            View Transaction <ExternalLink className="ml-1 h-3 w-3" />
+          </a>
+        </div>
+      );
+    } catch (error: any) {
+      console.error('Test transfer error:', error);
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTestVault = async () => {
+    setIsLoading(true);
+    
+    try {
+      const txId = await testMinimalDeposit();
+      toast.success(
+        <div className="flex flex-col space-y-2">
+          <div className="font-medium">Test Vault Call Successful!</div>
+          <a 
+            href={`https://explorer.hiro.so/txid/${txId}?chain=testnet`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
+          >
+            View Transaction <ExternalLink className="ml-1 h-3 w-3" />
+          </a>
+        </div>
+      );
+    } catch (error: any) {
+      console.error('Test vault error:', error);
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleTransaction = async () => {
     if (!isConnected || !address) {
-      setTxStatus({ type: 'error', message: 'Please connect your wallet first' });
+      toast.error('Please connect your wallet first');
       return;
     }
 
     if (!amount || parseFloat(amount) <= 0) {
-      setTxStatus({ type: 'error', message: 'Please enter a valid amount' });
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    // Check minimum amount
+    if (parseFloat(amount) < 0.001) {
+      toast.error('Minimum amount is 0.001 STX');
       return;
     }
 
     setIsLoading(true);
-    setTxStatus({ type: null, message: '' });
 
     try {
       let txId: string;
       
       if (activeTab === 'deposit') {
         const amountInMicroSTX = validateDepositAmount(amount);
+        console.log('Validated amount for deposit:', {
+          originalAmount: amount,
+          amountInMicroSTX,
+          minAmount: 0.000001 * MICROSTX_IN_STX,
+          maxAmount: 1000000 * MICROSTX_IN_STX
+        });
+        
+        // Additional validation
+        if (amountInMicroSTX < 1) {
+          throw new Error('Amount too small - minimum 1 microSTX');
+        }
+        
         txId = await depositSTX(amountInMicroSTX);
-        setTxStatus({ 
-          type: 'success', 
-          message: `Deposit transaction submitted! TX ID: ${txId}` 
-        });
+        toast.success(
+          <div className="flex flex-col space-y-2">
+            <div className="font-medium">Deposit Successful!</div>
+            <div className="text-sm text-gray-600">Your STX has been deposited to the vault</div>
+            <a 
+              href={`https://explorer.hiro.so/txid/${txId}?chain=testnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
+            >
+              View Transaction <ExternalLink className="ml-1 h-3 w-3" />
+            </a>
+          </div>
+        );
       } else {
-        const sharesAmount = parseFloat(amount) * MICROSTX_IN_STX;
-        txId = await withdrawSTX(sharesAmount);
-        setTxStatus({ 
-          type: 'success', 
-          message: `Withdraw transaction submitted! TX ID: ${txId}` 
+        const sharesAmount = Math.floor(parseFloat(amount) * MICROSTX_IN_STX);
+        console.log('Validated amount for withdraw:', {
+          originalAmount: amount,
+          sharesAmount,
+          userBalance: userBalance?.shares
         });
+        
+        // Additional validation for withdraw
+        if (sharesAmount < 1) {
+          throw new Error('Shares amount too small');
+        }
+        
+        if (userBalance && sharesAmount > userBalance.shares) {
+          throw new Error('Insufficient ySTX balance');
+        }
+        
+        txId = await withdrawSTX(sharesAmount);
+        toast.success(
+          <div className="flex flex-col space-y-2">
+            <div className="font-medium">Withdraw Successful!</div>
+            <div className="text-sm text-gray-600">Your STX has been withdrawn from the vault</div>
+            <a 
+              href={`https://explorer.hiro.so/txid/${txId}?chain=testnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
+            >
+              View Transaction <ExternalLink className="ml-1 h-3 w-3" />
+            </a>
+          </div>
+        );
       }
       
       setAmount('');
@@ -191,7 +294,7 @@ export default function EarnPage() {
       
     } catch (error: any) {
       const errorMessage = handleContractError(error);
-      setTxStatus({ type: 'error', message: errorMessage });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -266,14 +369,7 @@ export default function EarnPage() {
                   </Alert>
                 )}
 
-                {txStatus.type && (
-                  <Alert className={`mb-4 ${txStatus.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-                    {txStatus.type === 'success' ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4 text-red-600" />}
-                    <AlertDescription className={txStatus.type === 'success' ? 'text-green-700' : 'text-red-700'}>
-                      {txStatus.message}
-                    </AlertDescription>
-                  </Alert>
-                )}
+
 
                 <div className="space-y-2">
                   <label className="text-sm font-normal text-slate-700">
@@ -335,20 +431,43 @@ export default function EarnPage() {
                   </div>
                 )}
 
-                <Button 
-                  onClick={handleTransaction}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-normal py-3"
-                  disabled={!isConnected || !amount || parseFloat(amount) <= 0 || isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Processing...</span>
+                <div className="space-y-2">
+                  <Button 
+                    onClick={handleTransaction}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-normal py-3"
+                    disabled={!isConnected || !amount || parseFloat(amount) <= 0 || isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Processing...</span>
+                      </div>
+                    ) : (
+                      activeTab === "deposit" ? "Deposit STX" : "Withdraw STX"
+                    )}
+                  </Button>
+                  
+                  {/* {isConnected && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={handleTestTransfer}
+                        variant="outline"
+                        size="sm"
+                        disabled={isLoading}
+                      >
+                        Test STX
+                      </Button>
+                      <Button 
+                        onClick={handleTestVault}
+                        variant="outline"
+                        size="sm"
+                        disabled={isLoading}
+                      >
+                        Test Vault
+                      </Button>
                     </div>
-                  ) : (
-                    activeTab === "deposit" ? "Deposit STX" : "Withdraw STX"
-                  )}
-                </Button>
+                  )} */}
+                </div>
               </CardContent>
             </Card>
           </motion.div>

@@ -44,23 +44,23 @@ export const validateDepositAmount = (amount: string): number => {
 export const handleContractError = (error: any): string => {
   const message = error.message || error.toString();
   
-  if (message.includes('u100')) {
-    return 'Contract is paused';
-  } else if (message.includes('u101')) {
+  if (message.includes('u100') || message.includes('(err u100)')) {
+    return '⚠️ Vault is currently paused. Please try again later or contact support.';
+  } else if (message.includes('u101') || message.includes('(err u101)')) {
     return 'Insufficient funds in vault';
-  } else if (message.includes('u102')) {
+  } else if (message.includes('u102') || message.includes('(err u102)')) {
     return 'Invalid shares amount';
-  } else if (message.includes('u103')) {
+  } else if (message.includes('u103') || message.includes('(err u103)')) {
     return 'Not authorized keeper';
-  } else if (message.includes('u104')) {
+  } else if (message.includes('u104') || message.includes('(err u104)')) {
     return 'Not authorized admin';
-  } else if (message.includes('u105')) {
-    return 'TVL cap exceeded';
-  } else if (message.includes('u106')) {
+  } else if (message.includes('u105') || message.includes('(err u105)')) {
+    return 'TVL cap exceeded - vault has reached maximum capacity';
+  } else if (message.includes('u106') || message.includes('(err u106)')) {
     return 'Strategy not allowed';
-  } else if (message.includes('u109')) {
+  } else if (message.includes('u109') || message.includes('(err u109)')) {
     return 'Amount cannot be zero';
-  } else if (message.includes('u110')) {
+  } else if (message.includes('u110') || message.includes('(err u110)')) {
     return 'Shares cannot be zero';
   }
   
@@ -72,10 +72,16 @@ export const depositSTX = async (amount: number): Promise<string> => {
     throw new Error('User not signed in');
   }
 
+  // Validate amount
+  if (amount <= 0) {
+    throw new Error('Amount must be greater than 0');
+  }
+
   console.log('Deposit params:', {
     amount,
     contractAddress: CONTRACT_ADDRESSES.VAULT,
-    contractName: CONTRACT_ADDRESSES.VAULT_NAME
+    contractName: CONTRACT_ADDRESSES.VAULT_NAME,
+    network: network
   });
 
   return new Promise((resolve, reject) => {
@@ -85,8 +91,11 @@ export const depositSTX = async (amount: number): Promise<string> => {
       functionName: 'deposit',
       functionArgs: [uintCV(amount)],
       network,
-      anchorMode: AnchorMode.Any,
       postConditionMode: PostConditionMode.Allow,
+      appDetails: {
+        name: 'Zeref Vault',
+        icon: window.location.origin + '/favicon.ico'
+      },
       onFinish: (data) => {
         console.log('Deposit transaction successful:', data);
         resolve(data.txId);
@@ -103,10 +112,16 @@ export const withdrawSTX = async (shares: number): Promise<string> => {
     throw new Error('User not signed in');
   }
 
+  // Validate shares
+  if (shares <= 0) {
+    throw new Error('Shares must be greater than 0');
+  }
+
   console.log('Withdraw params:', {
     shares,
     contractAddress: CONTRACT_ADDRESSES.VAULT,
-    contractName: CONTRACT_ADDRESSES.VAULT_NAME
+    contractName: CONTRACT_ADDRESSES.VAULT_NAME,
+    network: network
   });
 
   return new Promise((resolve, reject) => {
@@ -116,8 +131,11 @@ export const withdrawSTX = async (shares: number): Promise<string> => {
       functionName: 'withdraw',
       functionArgs: [uintCV(shares)],
       network,
-      anchorMode: AnchorMode.Any,
       postConditionMode: PostConditionMode.Allow,
+      appDetails: {
+        name: 'Zeref Vault',
+        icon: window.location.origin + '/favicon.ico'
+      },
       onFinish: (data) => {
         console.log('Withdraw transaction successful:', data);
         resolve(data.txId);
@@ -283,6 +301,25 @@ export const transferYSTX = async (amount: number, recipient: string): Promise<s
       },
     });
   });
+};
+
+export const checkVaultStatus = async (): Promise<{ isPaused: boolean; canDeposit: boolean }> => {
+  try {
+    // Try to call a simple read function to check if vault is accessible
+    await getExchangeRate();
+    
+    // If we can read exchange rate, vault is not paused
+    return { isPaused: false, canDeposit: true };
+  } catch (error: any) {
+    const message = error.message || error.toString();
+    
+    if (message.includes('u100') || message.includes('ERR_PAUSED')) {
+      return { isPaused: true, canDeposit: false };
+    }
+    
+    // Other errors might still allow deposits
+    return { isPaused: false, canDeposit: true };
+  }
 };
 
 export const getVaultStats = async (): Promise<VaultStats> => {
