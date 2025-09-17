@@ -5,6 +5,8 @@ import { Wallet, TrendingUp, Activity, Bell, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockDashboard } from "@/lib/mock-data";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { WalletStatus } from "@/components/wallet/wallet-status";
 import Image from "next/image";
 
 function formatCurrency(amount: number) {
@@ -26,6 +28,18 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <div className="p-6 lg:p-8 space-y-8">
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex justify-between items-center"
+        >
+          <h1 className="text-3xl font-sora font-semibold">Dashboard</h1>
+          <ConnectWalletButton />
+        </motion.div>
+
+        <WalletStatus />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

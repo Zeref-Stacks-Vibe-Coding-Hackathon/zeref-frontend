@@ -1,0 +1,12 @@
+{
+  "name": "Zeref",
+  "start_url": "/",
+  "description": "Zeref - Cross-Chain Automated Yield Looping Protocol",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -191,7 +191,7 @@ export default function HistoryPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.4 }}
       >
-        <Card className="border-slate-200">
+        <Card className="border-slate-200 py-6">
           <CardHeader>
             <CardTitle className="text-lg font-sora font-normal flex items-center">
               <History className="h-5 w-5 mr-2 text-slate-400" />
