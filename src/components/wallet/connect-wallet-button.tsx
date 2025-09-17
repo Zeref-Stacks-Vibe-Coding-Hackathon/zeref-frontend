@@ -31,7 +31,7 @@ export function ConnectWalletButton() {
   if (isConnected && address) {
     return (
       <div className="flex items-center gap-2">
-        <div className="px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium">
+        <div className="px-3 py-2 bg-black text-white rounded-lg text-sm font-medium">
           {formatAddress(address)}
         </div>
         <Button

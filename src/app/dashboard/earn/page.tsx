@@ -16,11 +16,14 @@ export default function EarnPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
+        className="flex justify-between items-center pb-6 border-b border-slate-200"
       >
-        <h1 className="text-2xl font-sora font-normal text-slate-900 mb-2">Earn</h1>
-        <p className="text-slate-600 font-normal">
-          Deposit STX to mint ySTX and start earning optimized yields
-        </p>
+        <div>
+          <h1 className="text-3xl font-sora font-semibold text-slate-900">Earn</h1>
+          <p className="text-slate-600 font-normal mt-2">
+            Deposit STX to mint ySTX and start earning optimized yields
+          </p>
+        </div>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

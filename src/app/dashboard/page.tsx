@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockDashboard } from "@/lib/mock-data";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
-import { WalletStatus } from "@/components/wallet/wallet-status";
+import { STXBalanceRow } from "@/components/dashboard/stx-balance-row";
+import { PortfolioChart } from "@/components/dashboard/portfolio-chart";
+import { useWallet } from "@/components/wallet/wallet-context";
+import { usePortfolio } from "@/hooks/use-portfolio";
 import Image from "next/image";
 
 function formatCurrency(amount: number) {
@@ -24,6 +27,8 @@ function formatNumber(num: number) {
 
 export default function DashboardPage() {
   const { tvl, currentYield, activeChains, lastLooping } = mockDashboard;
+  const { isConnected } = useWallet();
+  const { totalValue, stxBalance, stxPrice, loading: portfolioLoading } = usePortfolio();
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -33,13 +38,11 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex justify-between items-center"
+          className="flex justify-between items-center pb-6 border-b border-slate-200"
         >
-          <h1 className="text-3xl font-sora font-semibold">Dashboard</h1>
+          <h1 className="text-3xl font-sora font-semibold text-slate-900">Dashboard</h1>
           <ConnectWalletButton />
         </motion.div>
-
-        <WalletStatus />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -53,12 +56,41 @@ export default function DashboardPage() {
           </div>
           
           <div className="space-y-2">
-            <div className="text-6xl font-sora font-light">
-              {formatCurrency(1000)}<span className="text-4xl">.00</span>
-            </div>
-            <div className="text-slate-500 text-sm">
-              — $1000 (0.00%) Today
-            </div>
+            {portfolioLoading ? (
+              <div className="animate-pulse">
+                <div className="text-6xl font-sora font-light text-slate-300">
+                  Loading...
+                </div>
+                <div className="text-slate-400 text-sm">
+                  Fetching portfolio data
+                </div>
+              </div>
+            ) : isConnected ? (
+              <div>
+                <div className="text-6xl font-sora font-light">
+                  {formatCurrency(totalValue)}
+                </div>
+                <div className="flex items-center text-slate-500 text-sm">
+                  <span>{stxBalance.toFixed(2)} STX</span>
+                  <Image 
+                    src="/Images/Logo/stacks-stx-logo.png" 
+                    alt="STX" 
+                    width={16} 
+                    height={16}
+                    className="ml-2"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-6xl font-sora font-light text-slate-400">
+                  {formatCurrency(0)}
+                </div>
+                <div className="text-slate-500 text-sm">
+                  Connect wallet to view portfolio
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex space-x-2">
@@ -81,10 +113,9 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="h-48 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center relative"
+          className="h-64"
         >
-          <div className="absolute bottom-3 right-4 text-slate-500 text-sm">$0.00</div>
-          <div className="w-full h-0.5 bg-blue-600 absolute bottom-8 left-0"></div>
+          <PortfolioChart />
         </motion.div>
 
         <motion.div
@@ -93,13 +124,15 @@ export default function DashboardPage() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          <Card className="bg-slate-50 border-slate-200">
+          {/* <Card className="bg-slate-50 border-slate-200">
             <CardContent className="p-4">
               <div className="space-y-2 py-1">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-slate-600 text-sm">Balance ySTX</h3>
+                  <h3 className="text-slate-600 text-sm">Balance STX</h3>
                   <div className="flex items-center space-x-2">
-                    <span className="text-slate-900 font-normal">0 ySTX</span>
+                    <span className="text-slate-900 font-normal">
+                      {isConnected ? `${stxBalance.toFixed(2)} STX` : '0 STX'}
+                    </span>
                     <Image 
                       src="/Images/Logo/stacks-stx-logo.png" 
                       alt="STX" 
@@ -109,43 +142,31 @@ export default function DashboardPage() {
                     />
                   </div>
                 </div>
-                <div className="text-slate-500 text-sm">Yield-bearing STX</div>
+                <div className="text-slate-500 text-sm">
+                  {isConnected ? `≈ ${formatCurrency(totalValue)}` : 'Connect wallet to view balance'}
+                </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           <Card className="bg-slate-50 border-slate-200">
             <CardContent className="p-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <img 
-                      src="/Images/Logo/ethereal-logo.jpg" 
-                      alt="Ethereal Vault" 
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <div>
-                      <h3 className="text-slate-600 text-sm">Active Vault</h3>
-                      <div className="text-slate-500 text-xs">Ethereal Staking</div>
-                    </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-slate-600 text-sm font-medium">Active Vault</h3>
+                    <div className="text-slate-400 text-xs mt-1">Currently no active vaults</div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-slate-900 font-normal">2,500 STX</span>
-                    <img 
-                      src="/Images/Logo/stacks-stx-logo.png" 
-                      alt="STX" 
-                      className="w-4 h-4"
-                    />
+                  <div className="text-right">
+                    <div className="text-slate-900 font-normal text-sm">0 STX</div>
+                    <div className="text-slate-400 text-xs">≈ $0.00</div>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
+                
+                <div className="pt-2 border-t border-slate-200">
+                  <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-500">APY</span>
-                    <span className="text-slate-900">15.8%</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Chain</span>
-                    <span className="text-slate-900">Ethereum L2</span>
+                    <span className="text-slate-400">--</span>
                   </div>
                 </div>
               </div>
@@ -177,9 +198,20 @@ export default function DashboardPage() {
               <div>24h Volume</div>
               <div>Actions</div>
             </div>
-            <div className="p-8 text-center text-slate-500">
-              No spot assets found
-            </div>
+            
+            {isConnected ? (
+              <STXBalanceRow />
+            ) : (
+              <div className="p-8 text-center text-slate-500">
+                Connect your wallet to view balances
+              </div>
+            )}
+            
+            {isConnected && (
+              <div className="p-4 text-center text-slate-400 text-sm border-t border-slate-200">
+                Additional assets will appear here when available
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

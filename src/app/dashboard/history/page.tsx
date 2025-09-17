@@ -5,14 +5,15 @@ import { History, ArrowRight, Clock, TrendingUp, AlertCircle } from "lucide-reac
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 const loopingHistory = [
   {
     id: 1,
     timestamp: new Date("2024-01-15T14:30:00"),
     type: "optimization",
-    fromChain: "Stacks",
-    toChain: "Ethereum L2",
+    fromProtocol: "Moonwell",
+    toProtocol: "Aave",
     amount: "2,500 STX",
     previousApy: 12.2,
     newApy: 15.8,
@@ -25,8 +26,8 @@ const loopingHistory = [
     id: 2,
     timestamp: new Date("2024-01-15T12:15:00"),
     type: "rebalancing",
-    fromChain: "Base",
-    toChain: "Solana",
+    fromProtocol: "Aave",
+    toProtocol: "Pendle",
     amount: "1,800 STX",
     previousApy: 13.1,
     newApy: 14.7,
@@ -39,8 +40,8 @@ const loopingHistory = [
     id: 3,
     timestamp: new Date("2024-01-15T10:45:00"),
     type: "yield_harvest",
-    fromChain: "Ethereum L2",
-    toChain: "Ethereum L2",
+    fromProtocol: "Ethereal",
+    toProtocol: "Ethereal",
     amount: "3,200 STX",
     previousApy: 14.5,
     newApy: 14.5,
@@ -53,8 +54,8 @@ const loopingHistory = [
     id: 4,
     timestamp: new Date("2024-01-15T08:30:00"),
     type: "emergency_exit",
-    fromChain: "Solana",
-    toChain: "Stacks",
+    fromProtocol: "Pendle",
+    toProtocol: "Moonwell",
     amount: "4,100 STX",
     previousApy: 11.2,
     newApy: 12.8,
@@ -67,8 +68,8 @@ const loopingHistory = [
     id: 5,
     timestamp: new Date("2024-01-15T06:20:00"),
     type: "optimization",
-    fromChain: "Ethereum L2",
-    toChain: "Base",
+    fromProtocol: "Ethereal",
+    toProtocol: "Aave",
     amount: "1,500 STX",
     previousApy: 13.8,
     newApy: 16.2,
@@ -78,6 +79,17 @@ const loopingHistory = [
     duration: "2m 15s"
   }
 ];
+
+const getProtocolLogo = (protocolName: string) => {
+  const protocolLogos: { [key: string]: string } = {
+    "Aave": "/Images/Logo/aave-logo.png",
+    "Moonwell": "/Images/Logo/moonwell-logo.png",
+    "Pendle": "/Images/Logo/pendle-logo.jpg",
+    "HyperFi": "/Images/Logo/hypurfi-logo.png",
+    "Ethereal": "/Images/Logo/ethereal-logo.jpg"
+  };
+  return protocolLogos[protocolName] || "/Images/Logo/stacks-logo.png";
+};
 
 const getTypeIcon = (type: string) => {
   switch (type) {
@@ -120,9 +132,10 @@ export default function HistoryPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
+        className="pb-6 border-b border-slate-200"
       >
-        <h1 className="text-2xl font-sora font-normal text-slate-900 mb-2">Looping History</h1>
-        <p className="text-slate-600 font-normal">
+        <h1 className="text-3xl font-sora font-semibold text-slate-900">Looping History</h1>
+        <p className="text-slate-600 font-normal mt-2">
           Complete timeline of automated yield optimization and asset movements
         </p>
       </motion.div>
@@ -239,9 +252,27 @@ export default function HistoryPage() {
                           <div>
                             <p className="text-xs text-slate-600 mb-1">Route</p>
                             <div className="flex items-center text-sm font-normal text-slate-900">
-                              <span>{loop.fromChain}</span>
+                              <div className="flex items-center space-x-1">
+                                <Image 
+                                  src={getProtocolLogo(loop.fromProtocol)} 
+                                  alt={loop.fromProtocol}
+                                  width={16}
+                                  height={16}
+                                  className="rounded-full"
+                                />
+                                <span>{loop.fromProtocol}</span>
+                              </div>
                               <ArrowRight className="h-3 w-3 mx-2 text-slate-400" />
-                              <span>{loop.toChain}</span>
+                              <div className="flex items-center space-x-1">
+                                <Image 
+                                  src={getProtocolLogo(loop.toProtocol)} 
+                                  alt={loop.toProtocol}
+                                  width={16}
+                                  height={16}
+                                  className="rounded-full"
+                                />
+                                <span>{loop.toProtocol}</span>
+                              </div>
                             </div>
                           </div>
 

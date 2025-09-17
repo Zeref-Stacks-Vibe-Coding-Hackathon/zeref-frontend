@@ -5,16 +5,70 @@ import { Search, TrendingUp, Activity, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { mockDashboard } from "@/lib/mock-data";
+import Image from "next/image";
+
+const supportedProtocols = [
+  {
+    name: "Aave",
+    logo: "/Images/Logo/aave-logo.png",
+    chain: "Base",
+    apy: 15.8,
+    tvl: "$2.1B",
+    active: true
+  },
+  {
+    name: "Moonwell",
+    logo: "/Images/Logo/moonwell-logo.png",
+    chain: "Base",
+    apy: 14.2,
+    tvl: "$185M",
+    active: true
+  },
+  {
+    name: "Pendle",
+    logo: "/Images/Logo/pendle-logo.jpg",
+    chain: "Arbitrum",
+    apy: 13.7,
+    tvl: "$1.8B",
+    active: true
+  },
+  {
+    name: "Hypurrfi",
+    logo: "/Images/Logo/hypurfi-logo.png",
+    chain: "Hyperliquid",
+    apy: 12.4,
+    tvl: "$95M",
+    active: false
+  },
+  {
+    name: "Ethereal",
+    logo: "/Images/Logo/ethereal-logo.jpg",
+    chain: "Ethereum",
+    apy: 16.1,
+    tvl: "$320M",
+    active: true
+  }
+];
+
+const getProtocolLogo = (protocolName: string) => {
+  const protocolLogos: { [key: string]: string } = {
+    "Aave": "/Images/Logo/aave-logo.png",
+    "Moonwell": "/Images/Logo/moonwell-logo.png",
+    "Pendle": "/Images/Logo/pendle-logo.jpg",
+    "Hypurrfi": "/Images/Logo/hypurfi-logo.png",
+    "Ethereal": "/Images/Logo/ethereal-logo.jpg"
+  };
+  return protocolLogos[protocolName] || "/Images/Logo/stacks-logo.png";
+};
 
 const resolverDecisions = [
   {
     id: 1,
     timestamp: new Date("2024-01-15T10:30:00"),
-    action: "Moved to Ethereum L2",
-    fromChain: "Stacks",
-    toChain: "Ethereum L2",
-    reason: "Higher APY detected (15.8% vs 12.2%)",
+    action: "Moved to Aave",
+    fromProtocol: "Moonwell",
+    toProtocol: "Aave",
+    reason: "Higher APY detected (15.8% vs 14.2%)",
     amount: "2,500 STX",
     status: "completed"
   },
@@ -22,27 +76,26 @@ const resolverDecisions = [
     id: 2,
     timestamp: new Date("2024-01-15T08:45:00"),
     action: "Maintained position",
-    fromChain: "Base",
-    toChain: "Base",
-    reason: "Optimal APY maintained (14.1%)",
+    fromProtocol: "Pendle",
+    toProtocol: "Pendle",
+    reason: "Optimal APY maintained (13.7%)",
     amount: "1,800 STX",
     status: "completed"
   },
   {
     id: 3,
     timestamp: new Date("2024-01-15T06:15:00"),
-    action: "Bridged from Solana",
-    fromChain: "Solana",
-    toChain: "Stacks",
-    reason: "Gas fees optimization",
+    action: "Moved to Ethereal",
+    fromProtocol: "Hypurrfi",
+    toProtocol: "Ethereal",
+    reason: "Better yield opportunities",
     amount: "3,200 STX",
     status: "completed"
   }
 ];
 
 export default function ResolverPage() {
-  const { activeChains } = mockDashboard;
-  const bestApy = Math.max(...activeChains.map(c => c.apy));
+  const bestApy = Math.max(...supportedProtocols.map(p => p.apy));
 
   return (
     <div className="p-6 lg:p-8 space-y-8">
@@ -50,9 +103,10 @@ export default function ResolverPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
+        className="pb-6 border-b border-slate-200"
       >
-        <h1 className="text-2xl font-sora font-normal text-slate-900 mb-2">Resolver View</h1>
-        <p className="text-slate-600 font-normal">
+        <h1 className="text-3xl font-sora font-semibold text-slate-900">Resolver View</h1>
+        <p className="text-slate-600 font-normal mt-2">
           Monitor supported chains, APY rates, and resolver optimization decisions
         </p>
       </motion.div>
@@ -68,27 +122,34 @@ export default function ResolverPage() {
               <CardHeader>
                 <CardTitle className="text-lg font-sora font-normal flex items-center">
                   <Search className="h-5 w-5 mr-2 text-slate-400" />
-                  Supported Chains & APY
+                  Supported Vault Protocol
                 </CardTitle>
                 <CardDescription>
-                  Real-time APY monitoring across all supported protocols
+                  Real-time APY monitoring across all supported vault protocols
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {activeChains.map((chain, index) => (
-                    <div key={chain.name} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                  {supportedProtocols.map((protocol, index) => (
+                    <div key={protocol.name} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${chain.active ? 'bg-green-500' : 'bg-slate-300'}`} />
+                        <div className={`w-3 h-3 rounded-full ${protocol.active ? 'bg-green-500' : 'bg-slate-300'}`} />
+                        <Image 
+                          src={protocol.logo} 
+                          alt={protocol.name} 
+                          width={32} 
+                          height={32}
+                          className="rounded-full"
+                        />
                         <div>
-                          <p className="font-normal text-slate-900">{chain.name}</p>
-                          <p className="text-sm text-slate-600">{chain.strategy}</p>
+                          <p className="font-normal text-slate-900">{protocol.name}</p>
+                          <p className="text-sm text-slate-600">{protocol.chain} • TVL {protocol.tvl}</p>
                         </div>
                       </div>
                       <div className="text-right space-y-1">
                         <div className="flex items-center space-x-2">
-                          <span className="text-lg font-normal text-slate-900">{chain.apy}%</span>
-                          {chain.apy === bestApy && (
+                          <span className="text-lg font-normal text-slate-900">{protocol.apy}%</span>
+                          {protocol.apy === bestApy && (
                             <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
                               Best
                             </Badge>
@@ -108,7 +169,7 @@ export default function ResolverPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <Card className="border-slate-200">
+            <Card className="border-slate-200 py-6">
               <CardHeader>
                 <CardTitle className="text-lg font-sora font-normal flex items-center">
                   <Zap className="h-5 w-5 mr-2 text-slate-400" />
@@ -166,13 +227,6 @@ export default function ResolverPage() {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <p className="font-normal text-slate-900 mb-1">{decision.action}</p>
-                          <p className="text-sm text-slate-600">
-                            {decision.fromChain !== decision.toChain ? (
-                              `${decision.fromChain} → ${decision.toChain}`
-                            ) : (
-                              `Maintained on ${decision.fromChain}`
-                            )}
-                          </p>
                         </div>
                         <Badge 
                           variant="secondary" 
@@ -182,7 +236,33 @@ export default function ResolverPage() {
                         </Badge>
                       </div>
                       
-                      <div className="space-y-1 text-sm text-slate-600">
+                      <div className="space-y-2 text-sm text-slate-600">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-normal">Route:</span>
+                          <div className="flex items-center space-x-2">
+                            <Image 
+                              src={getProtocolLogo(decision.fromProtocol)} 
+                              alt={decision.fromProtocol}
+                              width={16}
+                              height={16}
+                              className="rounded-full"
+                            />
+                            <span className="text-xs">{decision.fromProtocol}</span>
+                            {decision.fromProtocol !== decision.toProtocol && (
+                              <>
+                                <span className="text-slate-400">→</span>
+                                <Image 
+                                  src={getProtocolLogo(decision.toProtocol)} 
+                                  alt={decision.toProtocol}
+                                  width={16}
+                                  height={16}
+                                  className="rounded-full"
+                                />
+                                <span className="text-xs">{decision.toProtocol}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                         <p><span className="font-normal">Amount:</span> {decision.amount}</p>
                         <p><span className="font-normal">Reason:</span> {decision.reason}</p>
                         <p className="text-xs text-slate-500">
