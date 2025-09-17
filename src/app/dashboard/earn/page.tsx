@@ -1,12 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star } from "lucide-react";
+import { Star, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
+import { useWallet } from "@/components/wallet/wallet-context";
+import { 
+  depositSTX, 
+  withdrawSTX, 
+  getUserBalance, 
+  getExchangeRate, 
+  previewDeposit, 
+  previewWithdraw,
+  validateDepositAmount,
+  handleContractError,
+  VaultBalance
+} from "@/lib/vault-service";
+import { MICROSTX_IN_STX } from "@/lib/stacks-config";
 
 const availableVaults = [
   {
@@ -60,6 +74,128 @@ export default function EarnPage() {
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
   const [selectedVault, setSelectedVault] = useState(availableVaults[0]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [txStatus, setTxStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
+  const [userBalance, setUserBalance] = useState<VaultBalance | null>(null);
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+  const [previewAmount, setPreviewAmount] = useState<number>(0);
+  
+  const { isConnected, address } = useWallet();
+
+  useEffect(() => {
+    const loadVaultData = async () => {
+      if (!isConnected || !address) return;
+      
+      try {
+        const [balance, rate] = await Promise.all([
+          getUserBalance(address),
+          getExchangeRate()
+        ]);
+        setUserBalance(balance);
+        setExchangeRate(rate / MICROSTX_IN_STX);
+      } catch (error) {
+        console.error('Failed to load vault data:', error);
+      }
+    };
+
+    loadVaultData();
+  }, [isConnected, address]);
+
+  useEffect(() => {
+    const calculatePreview = async () => {
+      if (!amount || parseFloat(amount) <= 0) {
+        setPreviewAmount(0);
+        return;
+      }
+
+      try {
+        const amountInMicroSTX = parseFloat(amount) * MICROSTX_IN_STX;
+        
+        if (activeTab === 'deposit') {
+          const shares = await previewDeposit(amountInMicroSTX);
+          setPreviewAmount(shares / MICROSTX_IN_STX);
+        } else {
+          const stxAmount = await previewWithdraw(amountInMicroSTX);
+          setPreviewAmount(stxAmount / MICROSTX_IN_STX);
+        }
+      } catch (error) {
+        console.error('Failed to preview:', error);
+        setPreviewAmount(0);
+      }
+    };
+
+    const debounce = setTimeout(calculatePreview, 500);
+    return () => clearTimeout(debounce);
+  }, [amount, activeTab]);
+
+  const handleMaxClick = () => {
+    if (activeTab === 'deposit') {
+      // For deposit, we'd need to get STX balance from wallet
+      // For now, set a placeholder
+      setAmount('1');
+    } else {
+      // For withdraw, use ySTX balance
+      if (userBalance?.shares) {
+        setAmount((userBalance.shares / MICROSTX_IN_STX).toString());
+      }
+    }
+  };
+
+  const handleTransaction = async () => {
+    if (!isConnected || !address) {
+      setTxStatus({ type: 'error', message: 'Please connect your wallet first' });
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      setTxStatus({ type: 'error', message: 'Please enter a valid amount' });
+      return;
+    }
+
+    setIsLoading(true);
+    setTxStatus({ type: null, message: '' });
+
+    try {
+      let txId: string;
+      
+      if (activeTab === 'deposit') {
+        const amountInMicroSTX = validateDepositAmount(amount);
+        txId = await depositSTX(amountInMicroSTX);
+        setTxStatus({ 
+          type: 'success', 
+          message: `Deposit transaction submitted! TX ID: ${txId}` 
+        });
+      } else {
+        const sharesAmount = parseFloat(amount) * MICROSTX_IN_STX;
+        txId = await withdrawSTX(sharesAmount);
+        setTxStatus({ 
+          type: 'success', 
+          message: `Withdraw transaction submitted! TX ID: ${txId}` 
+        });
+      }
+      
+      setAmount('');
+      
+      // Refresh user balance after transaction
+      setTimeout(async () => {
+        try {
+          const balance = await getUserBalance(address);
+          setUserBalance(balance);
+        } catch (error) {
+          console.error('Failed to refresh balance:', error);
+        }
+      }, 3000);
+      
+    } catch (error: any) {
+      const errorMessage = handleContractError(error);
+      setTxStatus({ type: 'error', message: errorMessage });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="p-6 lg:p-8 space-y-8">
@@ -121,6 +257,24 @@ export default function EarnPage() {
               </CardHeader>
               
               <CardContent className="space-y-6">
+                {!isConnected && (
+                  <Alert className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Please connect your Stacks wallet to interact with the vault.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {txStatus.type && (
+                  <Alert className={`mb-4 ${txStatus.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                    {txStatus.type === 'success' ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertCircle className="h-4 w-4 text-red-600" />}
+                    <AlertDescription className={txStatus.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+                      {txStatus.message}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-sm font-normal text-slate-700">
                     Amount ({activeTab === "deposit" ? "STX" : "ySTX"})
@@ -132,26 +286,34 @@ export default function EarnPage() {
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
                       className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none font-normal"
+                      disabled={!isConnected}
                     />
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={handleMaxClick}
+                      disabled={!isConnected}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900"
                     >
                       Max
                     </Button>
                   </div>
+                  {userBalance && activeTab === 'withdraw' && (
+                    <div className="text-xs text-slate-500">
+                      Available: {(userBalance.shares / MICROSTX_IN_STX).toFixed(6)} ySTX
+                    </div>
+                  )}
                 </div>
 
                 {activeTab === "deposit" && (
                   <div className="bg-slate-50 rounded-lg p-4 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">You will receive</span>
-                      <span className="font-normal text-slate-900">{amount || "0"} ySTX</span>
+                      <span className="font-normal text-slate-900">{previewAmount.toFixed(6)} ySTX</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Exchange rate</span>
-                      <span className="font-normal text-slate-900">1 STX = 1 ySTX</span>
+                      <span className="font-normal text-slate-900">1 STX = {exchangeRate.toFixed(6)} ySTX</span>
                     </div>
                   </div>
                 )}
@@ -159,25 +321,33 @@ export default function EarnPage() {
                 {activeTab === "withdraw" && (
                   <div className="bg-slate-50 rounded-lg p-4 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">STX amount</span>
-                      <span className="font-normal text-slate-900">{amount || "0"} STX</span>
+                      <span className="text-slate-600">ySTX to burn</span>
+                      <span className="font-normal text-slate-900">{amount || "0"} ySTX</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Yield earned</span>
-                      <span className="font-normal text-green-600">+{((parseFloat(amount) || 0) * 0.125).toFixed(2)} STX</span>
+                      <span className="text-slate-600">STX you'll receive</span>
+                      <span className="font-normal text-slate-900">{previewAmount.toFixed(6)} STX</span>
                     </div>
-                    <div className="flex justify-between text-sm border-t border-slate-200 pt-2">
-                      <span className="text-slate-600">Total receive</span>
-                      <span className="font-normal text-slate-900">{((parseFloat(amount) || 0) * 1.125).toFixed(2)} STX</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Exchange rate</span>
+                      <span className="font-normal text-slate-900">1 ySTX = {(1/exchangeRate).toFixed(6)} STX</span>
                     </div>
                   </div>
                 )}
 
                 <Button 
+                  onClick={handleTransaction}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white font-normal py-3"
-                  disabled={!amount || parseFloat(amount) <= 0}
+                  disabled={!isConnected || !amount || parseFloat(amount) <= 0 || isLoading}
                 >
-                  {activeTab === "deposit" ? "Deposit STX" : "Withdraw STX"}
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Processing...</span>
+                    </div>
+                  ) : (
+                    activeTab === "deposit" ? "Deposit STX" : "Withdraw STX"
+                  )}
                 </Button>
               </CardContent>
             </Card>

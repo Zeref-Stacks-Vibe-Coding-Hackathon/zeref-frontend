@@ -24,21 +24,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         // Check for authentication response first
         const urlParams = new URLSearchParams(window.location.search);
         const authResponse = urlParams.get('authResponse');
-        console.log('Auth response in URL:', authResponse);
         
         if (authResponse) {
-          console.log('Processing auth response...');
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname);
         }
         
         const connected = isUserSignedIn();
-        console.log('Wallet connected:', connected);
         setIsConnected(connected);
         
         if (connected) {
           const data = getUserData();
-          console.log('User data:', data);
           
           // Try async address first, then fallback to sync
           let walletAddress = await getAddressAsync();
@@ -46,7 +42,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             walletAddress = getAddress();
           }
           
-          console.log('Final wallet address:', walletAddress);
           setUserData(data);
           setAddress(walletAddress);
         } else {
@@ -54,7 +49,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           setAddress(null);
         }
       } catch (error) {
-        console.error('Error checking wallet connection:', error);
         setIsConnected(false);
         setUserData(null);
         setAddress(null);
@@ -67,18 +61,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     // Listen for storage changes to detect wallet connections
     const handleStorageChange = () => {
-      console.log('Storage changed, rechecking wallet...');
       checkWalletConnection();
     };
 
     // Listen for custom wallet events
     const handleWalletConnected = () => {
-      console.log('Wallet connected event received');
       checkWalletConnection();
     };
 
     const handleWalletDisconnected = () => {
-      console.log('Wallet disconnected event received');
       checkWalletConnection();
     };
 

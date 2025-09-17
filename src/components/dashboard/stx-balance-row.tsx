@@ -21,27 +21,45 @@ export function STXBalanceRow() {
 
   const loadBalance = async () => {
     if (!address) {
-      console.log('No address available for balance fetch');
       return;
     }
     
-    console.log('Loading balance for address:', address);
     setLoading(true);
+    // Set fallback price immediately
+    setPrice(0.65);
+    
     try {
-      const [balanceData, priceData] = await Promise.all([
-        fetchSTXBalance(address),
-        fetchSTXPrice()
-      ]);
+      let balanceData = null;
+      let priceData = 0.65; // Default fallback
       
-      console.log('Balance data received:', balanceData);
-      console.log('Price data received:', priceData);
+      // Fetch balance
+      try {
+        balanceData = await fetchSTXBalance(address);
+      } catch (balanceError) {
+        // Balance fetch failed
+      }
+      
+      // Fetch price separately
+      try {
+        const fetchedPrice = await fetchSTXPrice();
+        priceData = (fetchedPrice && fetchedPrice > 0) ? fetchedPrice : 0.65;
+      } catch (priceError) {
+        // Price fetch failed, use fallback
+        priceData = 0.65;
+      }
       
       setBalance(balanceData);
-      setPrice(priceData && priceData > 0 ? priceData : 0.65); // Use fallback price if API fails
+      setPrice(priceData);
     } catch (error) {
-      console.error('Error loading STX data:', error);
-      // Set fallback price even on error
-      setPrice(0.65);
+      // Complete failure - try balance only
+      try {
+        const balanceData = await fetchSTXBalance(address);
+        setBalance(balanceData);
+        setPrice(0.65);
+      } catch (fallbackError) {
+        // Keep fallback price even on complete failure
+        setPrice(0.65);
+      }
     } finally {
       setLoading(false);
     }
