@@ -51,7 +51,7 @@ export function usePortfolio(): PortfolioData {
       console.log('Portfolio price data:', priceData);
       
       const balance = balanceData ? parseFloat(balanceData.balance) : 0;
-      const price = priceData || 0;
+      const price = priceData && priceData > 0 ? priceData : 0.65; // Use fallback price if API fails
       const value = balance * price;
       
       setStxBalance(balance);
@@ -63,8 +63,9 @@ export function usePortfolio(): PortfolioData {
     } catch (err) {
       console.error('Error loading portfolio data:', err);
       setError('Failed to load portfolio data');
+      // Still try to show fallback price even on error
+      setStxPrice(0.65);
       setStxBalance(0);
-      setStxPrice(0);
       setTotalValue(0);
     } finally {
       setLoading(false);

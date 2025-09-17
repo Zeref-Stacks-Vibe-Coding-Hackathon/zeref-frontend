@@ -37,9 +37,11 @@ export function STXBalanceRow() {
       console.log('Price data received:', priceData);
       
       setBalance(balanceData);
-      setPrice(priceData);
+      setPrice(priceData && priceData > 0 ? priceData : 0.65); // Use fallback price if API fails
     } catch (error) {
       console.error('Error loading STX data:', error);
+      // Set fallback price even on error
+      setPrice(0.65);
     } finally {
       setLoading(false);
     }

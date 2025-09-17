@@ -2,13 +2,64 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowDownUp, Coins } from "lucide-react";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
+
+const availableVaults = [
+  {
+    name: "Aave",
+    logo: "/Images/Logo/aave-logo.png",
+    apy: 15.8,
+    chain: "Base",
+    tvl: "$2.1B",
+    risk: "Low",
+    featured: true
+  },
+  {
+    name: "Ethereal",
+    logo: "/Images/Logo/ethereal-logo.jpg",
+    apy: 16.1,
+    chain: "Ethereum",
+    tvl: "$320M",
+    risk: "Medium",
+    featured: true
+  },
+  {
+    name: "Moonwell",
+    logo: "/Images/Logo/moonwell-logo.png",
+    apy: 14.2,
+    chain: "Base",
+    tvl: "$185M",
+    risk: "Low",
+    featured: false
+  },
+  {
+    name: "Pendle",
+    logo: "/Images/Logo/pendle-logo.jpg",
+    apy: 13.7,
+    chain: "Arbitrum",
+    tvl: "$1.8B",
+    risk: "Medium",
+    featured: false
+  },
+  {
+    name: "HyperFi",
+    logo: "/Images/Logo/hypurfi-logo.png",
+    apy: 12.4,
+    chain: "Hyperliquid",
+    tvl: "$95M",
+    risk: "High",
+    featured: false
+  }
+];
 
 export default function EarnPage() {
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
+  const [selectedVault, setSelectedVault] = useState(availableVaults[0]);
 
   return (
     <div className="p-6 lg:p-8 space-y-8">
@@ -144,14 +195,16 @@ export default function EarnPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <img 
-                        src="/Images/Logo/ethereal-logo.jpg" 
-                        alt="Ethereal Vault" 
-                        className="w-8 h-8 rounded-full"
+                      <Image 
+                        src={selectedVault.logo} 
+                        alt={selectedVault.name} 
+                        width={32}
+                        height={32}
+                        className="rounded-full"
                       />
                       <div>
-                        <h3 className="text-slate-900 font-normal">Active Vault</h3>
-                        <div className="text-slate-500 text-sm">Ethereal Staking</div>
+                        <h3 className="text-slate-900 font-normal">Selected Vault</h3>
+                        <div className="text-slate-500 text-sm">{selectedVault.name}</div>
                       </div>
                     </div>
                   </div>
@@ -159,18 +212,76 @@ export default function EarnPage() {
                   <div className="space-y-2 pt-2 border-t border-slate-200">
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">APY</span>
-                      <span className="font-normal text-slate-900">15.8%</span>
+                      <span className="font-normal text-green-600">{selectedVault.apy}%</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Chain</span>
-                      <span className="font-normal text-slate-900">Ethereum L2</span>
+                      <span className="font-normal text-slate-900">{selectedVault.chain}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Your Position</span>
-                      <span className="font-normal text-slate-900">2,500 STX</span>
+                      <span className="text-slate-600">TVL</span>
+                      <span className="font-normal text-slate-900">{selectedVault.tvl}</span>
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <Card className="border-slate-200 py-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-sora font-normal flex items-center">
+                  <Star className="h-4 w-4 mr-2 text-slate-400" />
+                  Available Vaults
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Choose your preferred vault protocol
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {availableVaults.map((vault) => (
+                  <div
+                    key={vault.name}
+                    onClick={() => setSelectedVault(vault)}
+                    className={`p-3 border rounded-lg cursor-pointer transition-all hover:bg-slate-50 ${
+                      selectedVault.name === vault.name
+                        ? 'border-slate-400 bg-slate-50'
+                        : 'border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Image 
+                          src={vault.logo} 
+                          alt={vault.name}
+                          width={24}
+                          height={24}
+                          className="rounded-full"
+                        />
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-normal text-slate-900">{vault.name}</span>
+                            {vault.featured && (
+                              <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs px-1 py-0">
+                                Best
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-500">{vault.chain}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-normal text-green-600">{vault.apy}%</div>
+                        <div className="text-xs text-slate-500">APY</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </motion.div>

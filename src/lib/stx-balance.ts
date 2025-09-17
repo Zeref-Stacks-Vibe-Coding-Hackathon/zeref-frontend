@@ -206,10 +206,10 @@ export async function fetchSTXPrice(): Promise<number> {
 
     // If all APIs fail, return a default price (you might want to cache the last known price)
     console.warn('All price APIs failed, returning default price');
-    return 1.50; // Default STX price as fallback
+    return 0.65; // Default STX price as fallback
 
   } catch (error) {
     console.error('Error fetching STX price:', error);
-    return 1.50; // Default STX price as fallback
+    return 0.65; // Default STX price as fallback
   }
 }
