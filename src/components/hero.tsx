@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 
 export function Hero() {
   return (
@@ -126,19 +127,21 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 1.1 }}
             className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mb-12 sm:mb-16 md:mb-20"
           >
-            <Button 
-              size="lg" 
-              className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-6 sm:px-8 py-3 font-normal text-sm sm:text-base border-0 shadow-md hover:shadow-lg transition-all duration-300 rounded-sm"
-            >
-              Launch App
-            </Button>
-            <Button 
-              variant="ghost" 
+            <Link href="/dashboard" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+              <Button
+                size="lg"
+                className="cursor-pointer w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-6 sm:px-8 py-3 font-normal text-sm sm:text-base border-0 shadow-md hover:shadow-lg transition-all duration-300 rounded-sm"
+              >
+                Launch App
+              </Button>
+            </Link>
+            {/* <Button
+              variant="ghost"
               size="lg"
               className="w-full sm:w-auto text-slate-800 hover:text-slate-900 px-6 sm:px-8 py-3 font-normal text-sm sm:text-base border border-slate-400 hover:bg-white/50 transition-all duration-300 rounded-sm"
             >
               Documentation
-            </Button>
+            </Button> */}
           </motion.div>
 
           {/* Responsive metrics */}
